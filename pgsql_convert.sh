@@ -16,7 +16,8 @@ fi
 
 fix_sql()
 {
-    sed  -E -e "s/\[//g" \
+    sed  -E  -e "s/\[binary]/bytea/" \
+            -e "s/\[//g" \
             -e "s/]//g" \
             -e "s/^GO/;/" \
             -e "s/int IDENTITY\(1,1\)/serial/" \
@@ -36,10 +37,11 @@ fix_sql()
             -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
             -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
             -e "s/.*BatchAssertedPositionSourceId.*//" \
+            -e 's/^offset /"offset"/' \
             $1
 }
 
-for f in dbSNP_main_table.sql 	dbSNP_main_index.sql dbSNP_main_constraint.sql
+for f in */*_table.sql 	*/*_index.sql */*_constraint.sql
 do
     echo "%%%-INFO: loading file $f..."
     (echo '\set ON_ERROR_STOP on'; fix_sql $f) | psql --echo-all dbsnp
