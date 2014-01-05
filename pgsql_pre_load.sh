@@ -33,23 +33,34 @@ fix_sql()
             -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
             -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
             -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
+            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
             -e "s/UNIQUE  NONCLUSTERED/UNIQUE/" \
             -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
             -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
             -e "s/.*BatchAssertedPositionSourceId.*//" \
             -e 's/^offset /"offset"/' \
+            -e 's/,offset/,"offset"/' \
+            -e 's/.*The statement has been terminated.*//' \
             $1
 }
 
-for f in */*_table.sql 	*/*_index.sql */*_constraint.sql
+for f in */*_table.sql
 do
     echo "%%%-INFO: loading file $f..."
-    (echo '\set ON_ERROR_STOP on'; fix_sql $f) | psql --echo-all dbsnp
+    echo $f | grep -i 'constraint' > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        # make sure to execute all the primary key constraints first this 
+        # dump file is broken in that some FK appear before all PK's
+        (echo '\set ON_ERROR_STOP on'; fix_sql $f | grep -A1 'PRIMARY KEY') | psql --echo-all dbsnp
+        if [ $? -ne 0 ]; then
+            echo "%%%-ERROR: problem extracting primary keys from file $f, exiting..."
+            exit 1
+        fi
+    fi
+    (echo '\set ON_ERROR_STOP on'; fix_sql $f | grep -v 'PRIMARY KEY') | psql --echo-all dbsnp
     if [ $? -ne 0 ]; then
         echo "%%%-ERROR: problem loading file $f, exiting..."
         exit 1
     fi
 done
-exit
 
-dbSNP_main_constraint.sql:ALTER TABLE [SNP_tax_id] ADD CONSTRAINT [DF__SNP_tax_i__statu__31583BA0] DEFAULT ('C') FOR [status]
