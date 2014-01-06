@@ -42,6 +42,15 @@ num_skipped=0
 num_downloaded=0
 num_total=0
 
+uname -a | grep -i linux > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    md5=md5sum
+    md5_field=1
+else
+    md5=md5
+    md5_field=4
+fi
+
 while [ $# -gt 0 ]
 do
     case "$1" in
@@ -126,12 +135,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-ftp_path=ftp://anonymous:anonymous@$host
-
 get_md5()
 {
     rm -f *.md5
-    CMD="(echo prompt; echo 'cd $remote_path'; echo 'mget *.md5') | ftp $ftp_path"
+    CMD="(echo prompt; echo 'cd $remote_path'; echo 'mget *.md5') | ftp -v $host"
     echo $CMD
     eval $CMD
     if [ $? -ne 0 ]; then
@@ -146,7 +153,7 @@ check_md5()
 {
     local md5_file=$1
     local file=$2
-    md5=$(md5 $file | perl -pi -e 's/\s+/\t/g' | cut -f4)
+    md5=$($md5 $file | perl -pi -e 's/\s+/\t/g' | cut -f${md5_field})
     if [ $? -ne 0 ]; then
         echo "    %%%-ERROR: problem getting md5 file $file, exiting..."
         exit 1
@@ -159,10 +166,11 @@ ftp_get_file()
 {
     local file=$1
     CMD="ftp '$ftp_path${remote_path}/${file}'"
+    CMD="(echo prompt; echo 'cd $remote_path';  echo 'get $1') | ftp -v -v $host"
     echo "    $CMD"
     eval $CMD
     if [ $? -ne 0 ]; then
-        echo "    %%%-ERROR: problem getting file (${remote_path}/${file}) from remote, exiting..."
+        echo "    %%%-ERROR: problem getting file ($1) from remote, exiting..."
         return 1
     fi 
     return 0

@@ -2,34 +2,35 @@
 
 DBNAME=dbsnp
 
+
 fix_sql()
 {
-    sed  -E  -e "s/\[binary]/bytea/" \
-            -e "s/\[//g" \
-            -e "s/]//g" \
-            -e "s/^GO/;/" \
-            -e "s/int IDENTITY\(1,1\)/serial/" \
-            -e "s/smalldatetime/timestamp with time zone/" \
-            -e "s/tinyint/smallint/" \
-            -e "s/datetime/timestamp with time zone/" \
-            -e "s/CREATE NONCLUSTERED/CREATE/" \
-            -e "s/CREATE CLUSTERED/CREATE/" \
-            -e "s/INDEX ([a-zA-Z0-9_]+) ON ([a-zA-Z0-9_]+)/INDEX \1_\2 ON \2/" \
-            -e "s/ALTER TABLE ([[:alnum:]_]+) ADD CONSTRAINT [[:alnum:]_]+ DEFAULT ([[:alnum:]_()']+) FOR ([[:alnum:]_]+)/alter table \1  alter \3 set default \2;/" \
-            -e "s/default \(GETDATE\())/default now()/" \
-            -e "s/PRIMARY KEY  (CLUSTERED|NONCLUSTERED)/PRIMARY KEY/" \
-            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
-            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
-            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
-            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/" \
-            -e "s/UNIQUE  NONCLUSTERED/UNIQUE/" \
-            -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
-            -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/" \
-            -e "s/.*BatchAssertedPositionSourceId.*//" \
-            -e 's/^offset /"offset"/' \
-            -e 's/,offset/,"offset"/' \
-            -e 's/.*The statement has been terminated.*//' \
-            $1
+    cat $1 | perl -pi -e "s/\[binary]/bytea/;" \
+            -e "s/\[//g;" \
+            -e "s/]//g;" \
+            -e "s/^GO/;/;" \
+            -e "s/int IDENTITY\(1,1\)/serial/;" \
+            -e "s/smalldatetime/timestamp with time zone/;" \
+            -e "s/tinyint/smallint/;" \
+            -e "s/datetime/timestamp with time zone/;" \
+            -e "s/CREATE NONCLUSTERED/CREATE/;" \
+            -e "s/CREATE CLUSTERED/CREATE/;" \
+            -e "s/INDEX ([a-zA-Z0-9_]+) ON ([a-zA-Z0-9_]+)/INDEX \1_\2 ON \2/;" \
+            -e "s/ALTER TABLE ([[:alnum:]_]+) ADD CONSTRAINT [[:alnum:]_]+ DEFAULT ([[:alnum:]_()']+) FOR ([[:alnum:]_]+)/alter table \1  alter \3 set default \2;/;" \
+            -e "s/default [(]GETDATE[()]+/default now()/;" \
+            -e "s/PRIMARY KEY  (CLUSTERED|NONCLUSTERED)/PRIMARY KEY/;" \
+            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/;" \
+            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/;" \
+            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/;" \
+            -e "s/(PRIMARY KEY \(.*)(ASC|DESC)/\1/;" \
+            -e "s/UNIQUE  NONCLUSTERED/UNIQUE/;" \
+            -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/;" \
+            -e "s/(ADD CONSTRAINT +[a-zA-Z0-9_]+ +UNIQUE +\(.+)( ASC| DESC)/\1/;" \
+            -e "s/.*BatchAssertedPositionSourceId.*//;" \
+            -e 's/^offset /"offset"/;' \
+            -e 's/,offset/,"offset"/;' \
+            -e 's/.*The statement has been terminated.*//;' \
+
 }
 
 for f in */*_index.sql */*_constraint.sql
@@ -51,4 +52,8 @@ do
         exit 1
     fi
 done
+
+
+
+
 
