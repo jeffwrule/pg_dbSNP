@@ -1,6 +1,13 @@
-#!/bin/bash
+#!/bin/bash 
 
 export PGDATABASE=dbsnp
+
+uname -a | grep -i Linux > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    gzcat=zcat
+else
+    gzcat=gzcat
+fi
 
 PROG=$(basename $0)
 usage()
@@ -157,7 +164,7 @@ do
     echo ----------------------------------------------------------------------------------------------------------------------------------------------
     num_total=$((num_total + 1))
     echo
-    echo "    %%%-INFO: $(date) starting to load table $f "
+    echo "    %%%-INFO: $(date) starting to load file $f "
     
     if [ -f $f.loaded ]; then
         num_previous=$((num_previous + 1))
@@ -196,10 +203,10 @@ do
     table_name=${base_file%%.bcp.gz}
     
 
-    echo "    %%%-INFO: loading $(gzcat $f | wc -l) lines of data from a $(du -sh $f|cut -f1) compressed file..."
+    echo "    %%%-INFO: loading $($gzcat $f | wc -l) lines of data from a $(du -sh $f|cut -f1) compressed file..."
 
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    gzcat $f | head -5
+    $gzcat $f | head -5
     CMD="psql -c \"truncate table $table_name\""
     echo $CMD
     eval $CMD
@@ -208,7 +215,7 @@ do
         echo "    %%%-ERROR: could not truncate table $table_name, skipping"
         continue
     fi
-    CMD="(echo '\timing on'; echo \"copy $table_name from STDIN with (null '');\"; gzcat $f; echo '\.') | psql -q"
+    CMD="(echo '\timing on'; echo \"copy $table_name from STDIN with (null '');\"; $gzcat $f; echo '\.') | psql -q"
     echo $CMD
     eval $CMD
     if [ $? -ne 0 ]; then

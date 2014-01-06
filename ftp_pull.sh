@@ -44,10 +44,10 @@ num_total=0
 
 uname -a | grep -i linux > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    md5=md5sum
+    md5_cmd=md5sum
     md5_field=1
 else
-    md5=md5
+    md5_cmd=md5
     md5_field=4
 fi
 
@@ -147,13 +147,36 @@ get_md5()
     fi
 }
 
-#get_md5
+remove_previous_builds()
+{
+    echo "%%%-INFO: only saving files from most recent dbSNP build from this data directory (bxxx_*.md5)"
+    local file_template='b[0-9][0-9][0-9]_*.md5'
+    if [ -z "$file_template" ]; then
+        echo "%%%-INFO: no builds found in this directory"
+        return
+    fi
+    local builds=($(ls $file_template | cut -f1 -d'_' | sort -u | sort -n -r)) > /dev/null 2>&1
+    last_build=${builds[0]}
+    echo "%%%-INFO: removing all files for builds except for build: $last_build"
+    for b in ${builds[*]}
+    do
+        if [ "$b" == "$last_build" ]; then
+            continue
+        fi
+        echo "%%%-INFO: removing files from previous bulid $b"
+        ls ${b}_*
+        rm ${b}_*
+    done
+}
+
+get_md5
+remove_previous_builds
 
 check_md5()
 {
     local md5_file=$1
     local file=$2
-    md5=$($md5 $file | perl -pi -e 's/\s+/\t/g' | cut -f${md5_field})
+    md5=$($md5_cmd $file | perl -pi -e 's/\s+/\t/g' | cut -f${md5_field})
     if [ $? -ne 0 ]; then
         echo "    %%%-ERROR: problem getting md5 file $file, exiting..."
         exit 1
@@ -166,7 +189,7 @@ ftp_get_file()
 {
     local file=$1
     CMD="ftp '$ftp_path${remote_path}/${file}'"
-    CMD="(echo prompt; echo 'cd $remote_path';  echo 'get $1') | ftp -v -v $host"
+    CMD="(echo prompt; echo 'cd $remote_path';  echo hash; echo 'get $1') | ftp -v -v $host"
     echo "    $CMD"
     eval $CMD
     if [ $? -ne 0 ]; then
